@@ -82,8 +82,11 @@ function Footer() {
         </strong>
 
         <a className="footer-credit" href="https://nasibkarimzade.vercel.app/" target="_blank" rel="noreferrer">
-          <span>Design & Development</span>
+          <span>Design &amp; development</span>
           <strong>nK</strong>
+          <svg className="footer-credit-arrow" width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 12 12 4M4 4h8v8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </a>
       </div>
     </footer>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { HiOutlineMenuAlt4 } from 'react-icons/hi'
 import { IoCloseOutline } from 'react-icons/io5'
+import { FiMoon, FiSun } from 'react-icons/fi'
 
-function Header() {
+function Header({ theme, onToggleTheme }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuLinks = [
     { label: 'Hakkimizda', href: '/#next-section' },
@@ -51,6 +52,16 @@ function Header() {
         <img src="/logo.png" alt="Logo" />
       </a>
 
+      <div className="header-actions">
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={onToggleTheme}
+          aria-label={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
+          title={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
+        >
+          {theme === 'dark' ? <FiSun aria-hidden="true" /> : <FiMoon aria-hidden="true" />}
+        </button>
       <button
         className="menu-button"
         type="button"
@@ -60,6 +71,7 @@ function Header() {
       >
         {isMenuOpen ? <IoCloseOutline /> : <HiOutlineMenuAlt4 />}
       </button>
+      </div>
 
       <nav className={`header-menu ${isMenuOpen ? 'is-open' : ''}`} aria-hidden={!isMenuOpen}>
         <div className="header-menu-content">

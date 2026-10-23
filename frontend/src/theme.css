@@ -1,0 +1,68 @@
+.header-actions {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(var(--ink-rgb), 0.2);
+  border-radius: 50%;
+  background: rgb(var(--paper-rgb));
+  color: rgb(var(--ink-rgb));
+  cursor: pointer;
+}
+
+.theme-toggle svg {
+  width: 19px;
+  height: 19px;
+}
+
+.theme-toggle:hover {
+  background: rgba(var(--ink-rgb), 0.1);
+}
+
+.theme-toggle:focus-visible,
+.menu-button:focus-visible {
+  outline: 2px solid rgb(var(--ink-rgb));
+  outline-offset: 4px;
+}
+
+.hero-section {
+  background: rgb(var(--paper-rgb));
+}
+
+:root[data-theme='light'] .hero-cta-card {
+  background: rgba(var(--paper-rgb), 0.94);
+}
+
+:root[data-theme='light'] .mobile-hero-actions {
+  background: linear-gradient(180deg, rgba(var(--paper-rgb), 0) 0%, rgba(var(--paper-rgb), 0.88) 34%, rgb(var(--paper-rgb)) 100%);
+}
+
+:root[data-theme='light'] .scroll-down-link {
+  color: rgb(var(--ink-rgb));
+  text-shadow: 0 1px 6px rgb(var(--paper-rgb));
+}
+
+:root[data-theme='light'] .site-logo img,
+:root[data-theme='light'] .menu-logo img,
+:root[data-theme='light'] .loader-logo {
+  filter: invert(1);
+}
+
+:root[data-theme='light'] .contact-map iframe {
+  filter: grayscale(1);
+}
+
+:root[data-theme='light'] .infinite-spiral__item {
+  border-color: rgba(var(--ink-rgb), 0.2);
+  background: rgba(var(--ink-rgb), 0.06);
+}

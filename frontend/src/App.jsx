@@ -1,8 +1,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import './theme.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
+import useTheme from './useTheme'
 import Seo from './components/Seo'
 import Home from './Pages/Home'
 import Randevu from './Pages/Randevu'
@@ -55,6 +57,7 @@ function PageLoader({ onComplete }) {
 }
 
 function App() {
+  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const isAdminPage = location.pathname.startsWith('/admin')
   const [hasLoaderCompleted, setHasLoaderCompleted] = useState(() => {
@@ -71,9 +74,9 @@ function App() {
     <>
       <Seo pathname={location.pathname} />
       {shouldShowLoader && <PageLoader onComplete={completeLoader} />}
-      {!isAdminPage && <Header />}
+      {!isAdminPage && <Header theme={theme} onToggleTheme={toggleTheme} />}
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home theme={theme} />} />
         <Route path="/randevu" element={<Randevu />} />
         <Route path="/randevu-sorgula" element={<RandevuSorgula />} />
         <Route path="/kvkk" element={<Kvkk />} />

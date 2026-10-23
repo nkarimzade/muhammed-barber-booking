@@ -10,10 +10,34 @@ html {
   scroll-behavior: smooth;
 }
 
+:root {
+  color-scheme: dark;
+  --ink-rgb: 255, 255, 255;
+  --paper-rgb: 0, 0, 0;
+  --surface-loader: #030303;
+  --surface-raised: #050505;
+  --surface-modal: #111111;
+  --brand-fade: #d7d7d7;
+  --error-text: #ffb1b1;
+  --success-text: #9cffc2;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --ink-rgb: 28, 28, 30;
+  --paper-rgb: 250, 249, 246;
+  --surface-loader: #faf9f6;
+  --surface-raised: #f0efec;
+  --surface-modal: #ffffff;
+  --brand-fade: #666663;
+  --error-text: #a82020;
+  --success-text: #176d3b;
+}
+
 body {
   margin: 0;
-  background: #000000;
-  color: #ffffff;
+  background: rgb(var(--paper-rgb));
+  color: rgb(var(--ink-rgb));
   font-family: 'Poppins', sans-serif;
 }
 

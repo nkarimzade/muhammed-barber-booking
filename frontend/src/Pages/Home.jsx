@@ -168,7 +168,7 @@ function CountUp({ end, suffix = '', prefix = '' }) {
   )
 }
 
-function Home() {
+function Home({ theme }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(0)
   const [homeServices, setHomeServices] = useState(services)
   const [contactForm, setContactForm] = useState({
@@ -278,8 +278,8 @@ function Home() {
           </p>
         </div>
         <picture>
-          <source media="(min-width: 641px)" srcSet={heroImageDesktop} />
-          <img className="hero-image" src={heroImageMobile} alt="Muhammed Barber Çankırı Merkez berber salonu" />
+          <source media="(min-width: 641px)" srcSet={theme === 'light' ? '/hero-barber-pc-light.png' : heroImageDesktop} />
+          <img className="hero-image" src={theme === 'light' ? '/hero-barber-light.png' : heroImageMobile} alt="Muhammed Barber Çankırı Merkez berber salonu" />
         </picture>
 
         <motion.div

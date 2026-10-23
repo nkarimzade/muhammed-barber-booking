@@ -2,6 +2,16 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Apply the theme before the first paint.
+      (() => {
+        let saved
+        try { saved = localStorage.getItem('barber-theme') } catch {}
+        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      })()
+    </script>
     <link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
