@@ -250,24 +250,12 @@ function Home({ theme }) {
     <main className="home-page" id="top">
       <section className="hero-section">
         <h1 className="mobile-hero-title">
-          <motion.span
-            className="hero-name"
-            initial={{ opacity: 0, y: 34 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 1.2, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <span className="hero-name">
             Muhammed
-          </motion.span>
-          <motion.span
-            className="hero-script"
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 1.2, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          >
+          </span>
+          <span className="hero-script">
             Barber
-          </motion.span>
+          </span>
         </h1>
         <div className="seo-content">
           <h2>Muhammed Barber Çankırı Merkez Berber</h2>
@@ -281,13 +269,7 @@ function Home({ theme }) {
           <img className="hero-image" src={theme === 'light' ? '/hero-barber-light.png' : heroImageMobile} alt="Muhammed Barber Çankırı Merkez berber salonu" />
         </picture>
 
-        <motion.div
-          className="mobile-hero-actions"
-          initial={{ opacity: 0, y: 42 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.25 }}
-          transition={{ duration: 1.25, delay: 0.85, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <div className="mobile-hero-actions">
           <a className="scroll-down-link" href="#next-section" aria-label="Aşağı kaydır">
             <span>Aşağı</span>
             <i />
@@ -317,7 +299,7 @@ function Home({ theme }) {
               </a>
             </div>
           </div>
-        </motion.div>
+        </div>
       </section>
 
       <section className="selected-work" aria-labelledby="selected-work-title">
