@@ -1,0 +1,561 @@
+.appointment-page,
+.lookup-page {
+  padding: 28px 32px 88px;
+}
+
+.booking-page-nav {
+  width: min(1060px, 100%);
+  margin: 0 auto 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.booking-page-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: rgba(var(--ink-rgb), 0.65);
+  text-decoration: none;
+}
+
+.booking-page-nav > div {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(var(--ink-rgb), 0.12);
+  border-radius: 999px;
+}
+
+.booking-page-nav > div a {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+}
+
+.booking-page-nav a[aria-current='page'] {
+  color: rgb(var(--paper-rgb));
+  background: rgb(var(--ink-rgb));
+}
+
+.appointment-shell {
+  width: min(780px, 100%);
+}
+
+.appointment-brand,
+.lookup-heading > span {
+  font-family: 'Poppins', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  color: rgba(var(--ink-rgb), 0.6);
+}
+
+.appointment-shell > h1,
+.lookup-heading h1 {
+  margin: 18px 0;
+  font-size: clamp(52px, 7vw, 88px);
+  line-height: 0.98;
+  font-weight: 400;
+}
+
+.appointment-shell > p {
+  max-width: none;
+  margin-bottom: 32px;
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 1.8;
+  text-transform: none;
+}
+
+.selected-service-bar {
+  min-height: 64px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.selected-service-bar strong {
+  white-space: normal;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.selected-service-bar span {
+  font-family: 'Poppins', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.appointment-card {
+  margin-top: 0;
+  border-radius: 18px;
+  background: rgba(var(--ink-rgb), 0.025);
+}
+
+.booking-steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 28px 28px 20px;
+  border-bottom: 1px solid rgba(var(--ink-rgb), 0.1);
+}
+
+.booking-steps li {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  color: rgba(var(--ink-rgb), 0.55);
+}
+
+.booking-steps li::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 42px;
+  right: 6px;
+  height: 1px;
+  background: rgba(var(--ink-rgb), 0.14);
+}
+
+.booking-steps li:last-child::after {
+  display: none;
+}
+
+.booking-steps li > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(var(--ink-rgb), 0.18);
+  border-radius: 50%;
+  font-size: 11px;
+}
+
+.booking-steps li strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.booking-steps .is-current {
+  color: rgb(var(--ink-rgb));
+}
+
+.booking-steps .is-current > span {
+  color: rgb(var(--paper-rgb));
+  background: rgb(var(--ink-rgb));
+}
+
+.booking-steps .is-done > span {
+  border-color: rgba(var(--ink-rgb), 0.4);
+  color: rgb(var(--ink-rgb));
+}
+
+.booking-step-hint {
+  padding: 20px 28px 0;
+  margin: 0;
+  color: rgba(var(--ink-rgb), 0.65);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.appointment-panel {
+  padding: 24px 28px 28px;
+}
+
+.appointment-panel h2 {
+  margin-bottom: 20px;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.appointment-card .appointment-services {
+  max-height: none;
+  padding-right: 0;
+}
+
+.appointment-card .appointment-service {
+  min-height: 78px;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.appointment-card .appointment-service strong {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-transform: none;
+}
+
+.appointment-card .appointment-service b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.appointment-card .appointment-service.is-selected,
+.appointment-card .date-grid button.is-selected,
+.appointment-card .time-grid button.is-selected {
+  background: rgba(var(--ink-rgb), 0.08);
+  border-color: rgb(var(--ink-rgb));
+  box-shadow: inset 0 0 0 1px rgb(var(--ink-rgb));
+}
+
+.appointment-service.is-selected::after {
+  content: '✓';
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.appointment-service > div {
+  flex: 1;
+}
+
+.appointment-card .date-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.appointment-card .date-grid button {
+  min-width: 0;
+  min-height: 100px;
+}
+
+.appointment-card .time-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.appointment-card .time-grid button {
+  min-height: 52px;
+  font-size: 14px;
+}
+
+.appointment-bottom {
+  min-height: 86px;
+  padding: 18px 28px;
+  background: transparent;
+}
+
+.appointment-bottom .wizard-back,
+.appointment-bottom .wizard-next {
+  min-height: 48px;
+  border-radius: 10px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.customer-form input,
+.customer-form textarea,
+.phone-input {
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.customer-form label > span {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.booking-complete-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 48px;
+  margin-top: 24px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  color: rgb(var(--paper-rgb));
+  background: rgb(var(--ink-rgb));
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.lookup-shell {
+  width: min(1060px, 100%);
+}
+
+.lookup-entry {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 56px;
+  align-items: center;
+  padding: 32px 0;
+}
+
+.lookup-heading h1 {
+  font-size: clamp(52px, 6vw, 82px);
+}
+
+.lookup-heading p {
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.lookup-new-booking {
+  display: block;
+  margin-top: 28px;
+  color: rgba(var(--ink-rgb), 0.65);
+  font-size: 12px;
+  line-height: 2;
+  text-decoration: none;
+}
+
+.lookup-new-booking strong {
+  display: inline-block;
+  color: rgb(var(--ink-rgb));
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.lookup-form {
+  margin-top: 0;
+  padding: 28px;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  border-radius: 18px;
+  background: rgba(var(--ink-rgb), 0.025);
+}
+
+.lookup-form-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lookup-form-heading svg {
+  color: rgba(var(--ink-rgb), 0.6);
+  width: 18px;
+  height: 18px;
+}
+
+.lookup-form-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.lookup-form label > span {
+  text-transform: none;
+  font-weight: 500;
+}
+
+.lookup-input {
+  min-height: 58px;
+  background: transparent;
+  border-radius: 10px;
+}
+
+.lookup-input input {
+  font-size: 16px;
+}
+
+.lookup-form button {
+  min-height: 52px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.lookup-results {
+  width: min(780px, 100%);
+  margin: 32px auto 0;
+}
+
+.lookup-result-meta {
+  padding: 0 0 16px;
+  border: 0;
+  border-bottom: 1px solid rgba(var(--ink-rgb), 0.12);
+  border-radius: 0;
+  background: transparent;
+}
+
+.lookup-result-meta span {
+  font-weight: 500;
+  text-transform: none;
+}
+
+.lookup-result-meta strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.lookup-appointment-card,
+.lookup-empty,
+.lookup-modal {
+  padding: 26px;
+  border-radius: 16px;
+  background: rgba(var(--ink-rgb), 0.025);
+}
+
+.lookup-modal {
+  background: var(--surface-modal);
+}
+
+.lookup-appointment-card header strong {
+  font-size: 42px;
+  font-weight: 500;
+}
+
+.lookup-appointment-card header small {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.lookup-detail-grid div {
+  background: transparent;
+  padding: 12px 0;
+  font-size: 12px;
+}
+
+.lookup-cancel-button {
+  min-height: 44px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.appointment-page :is(button, a, input, textarea):focus-visible,
+.lookup-page :is(button, a, input):focus-visible {
+  outline: 2px solid rgb(var(--ink-rgb));
+  outline-offset: 4px;
+}
+
+.lookup-input:focus-within {
+  border-color: rgb(var(--ink-rgb));
+}
+
+@media (max-width: 720px) {
+  .appointment-page,
+  .lookup-page {
+    padding: 20px 20px 64px;
+  }
+
+  .booking-page-nav {
+    margin-bottom: 36px;
+    font-size: 10px;
+    gap: 8px;
+  }
+
+  .booking-page-nav > div a {
+    padding: 0 10px;
+    min-height: 36px;
+  }
+
+  .appointment-shell > h1,
+  .lookup-heading h1 {
+    font-size: clamp(44px, 11vw, 68px);
+  }
+
+  .appointment-shell > p,
+  .lookup-heading p {
+    font-size: 13px;
+  }
+
+  .booking-steps {
+    padding: 20px 16px 18px;
+    gap: 4px;
+  }
+
+  .booking-steps li strong {
+    font-size: 9px;
+  }
+
+  .booking-steps li > span {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .booking-steps li::after {
+    top: 13px;
+    left: 33px;
+    right: 4px;
+  }
+
+  .booking-step-hint {
+    padding: 18px 16px 0;
+    font-size: 11px;
+  }
+
+  .appointment-panel {
+    padding: 20px 16px 24px;
+  }
+
+  .appointment-card .appointment-service {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .appointment-card .appointment-service strong,
+  .appointment-card .appointment-service b {
+    font-size: 12px;
+  }
+
+  .appointment-card .date-grid {
+    gap: 8px;
+  }
+
+  .appointment-card .date-grid button {
+    min-height: 88px;
+  }
+
+  .appointment-card .time-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .appointment-bottom {
+    padding: 16px;
+    gap: 8px;
+  }
+
+  .appointment-bottom .wizard-next {
+    min-width: 0;
+    max-width: none;
+    padding: 0 16px;
+    font-size: 11px;
+  }
+
+  .lookup-entry {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 0;
+  }
+
+  .lookup-new-booking {
+    margin-top: 18px;
+    font-size: 11px;
+  }
+
+  .lookup-form,
+  .lookup-appointment-card,
+  .lookup-empty,
+  .lookup-modal {
+    padding: 20px;
+  }
+
+  .lookup-appointment-card header {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .lookup-detail-grid {
+    gap: 0;
+  }
+
+  .lookup-detail-grid div + div {
+    border-top: 1px solid rgba(var(--ink-rgb), 0.08);
+  }
+}

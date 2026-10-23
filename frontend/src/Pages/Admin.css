@@ -1537,7 +1537,7 @@
 /* ─── Toast Notifications ────────────────────────────────── */
 .admin-toast-container {
   position: fixed;
-  top: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
   right: 24px;
   z-index: 10000;
   pointer-events: none;
@@ -1621,7 +1621,7 @@
 
 @media (max-width: 560px) {
   .admin-toast-container {
-    top: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
     right: 16px;
     left: 16px;
   }

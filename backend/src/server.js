@@ -1,8 +1,5 @@
+import { createAppointmentsPdf } from './appointments-pdf.js'
 import http from 'node:http'
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import PDFDocument from 'pdfkit'
 import './env.js'
 import {
   blockPhone,
@@ -12,6 +9,7 @@ import {
   createService,
   deleteAppointment,
   deleteAppointmentForNumberId,
+  deletePastAppointments,
   deleteService,
   getAppointments,
   getAppointmentsByNumberId,
@@ -30,14 +28,18 @@ import {
   updateService,
 } from './db.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-const fontRegular = path.join(__dirname, 'fonts', 'Arial.ttf')
-const fontBold = path.join(__dirname, 'fonts', 'Arial-Bold.ttf')
-
 const port = Number(process.env.PORT || 4000)
 const adminToken = process.env.ADMIN_TOKEN || ''
+let appointmentCleanup = null
+
+function cleanUpAppointments() {
+  if (!appointmentCleanup) {
+    appointmentCleanup = deletePastAppointments()
+      .catch((error) => console.error('Gecmis randevular temizlenemedi:', error.message))
+      .finally(() => { appointmentCleanup = null })
+  }
+  return appointmentCleanup
+}
 
 const timeSlots = [
   '10:00',
@@ -85,243 +87,12 @@ function sendPdf(response, filename, buffer) {
   response.end(buffer)
 }
 
-function formatTurkishDate(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d))
-  const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
-  const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
-  return `${d} ${months[m - 1]} ${y}, ${days[dt.getUTCDay()]}`
-}
-
-function createAppointmentsPdf(date, appointments) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 36,
-      bufferPages: true,
-      info: {
-        Title: `Muhammed Barber - Randevular ${date}`,
-        Author: 'Muhammed Barber',
-      },
-    })
-
-    const buffers = []
-    doc.on('data', (chunk) => buffers.push(chunk))
-    doc.on('end', () => resolve(Buffer.concat(buffers)))
-    doc.on('error', reject)
-
-    const hasFonts = fs.existsSync(fontRegular) && fs.existsSync(fontBold)
-    if (hasFonts) {
-      doc.registerFont('Regular', fontRegular)
-      doc.registerFont('Bold', fontBold)
-    } else {
-      doc.registerFont('Regular', 'Helvetica')
-      doc.registerFont('Bold', 'Helvetica-Bold')
-    }
-
-    const pageWidth = 595.28
-    const margin = 36
-    const contentWidth = pageWidth - margin * 2
-
-    // --- Top Accent Bar ---
-    doc.rect(margin, 28, contentWidth, 3).fill('#2563EB')
-
-    // --- Header Section ---
-    let y = 42
-    doc.font('Bold').fontSize(18).fillColor('#0F172A').text('MUHAMMED BARBER', margin, y)
-    doc.font('Regular').fontSize(9.5).fillColor('#64748B').text('GÜNLÜK RANDEVU VE SALON YÖNETİM ÇİZELGESİ', margin, y + 22)
-
-    const now = new Date()
-    const printTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    const printDate = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`
-
-    doc.font('Regular').fontSize(8.5).fillColor('#64748B').text(`Oluşturulma: ${printDate} - ${printTime}`, margin, y + 4, {
-      align: 'right',
-      width: contentWidth,
-    })
-    doc.font('Bold').fontSize(8.5).fillColor('#2563EB').text('Sistem Raporu', margin, y + 18, {
-      align: 'right',
-      width: contentWidth,
-    })
-
-    // Divider
-    y = 78
-    doc.moveTo(margin, y).lineTo(pageWidth - margin, y).strokeColor('#E2E8F0').lineWidth(1).stroke()
-
-    // --- Metrics / Stat Cards Banner ---
-    y += 14
-    const cardGap = 12
-    const cardWidth = (contentWidth - cardGap * 2) / 3
-    const cardHeight = 56
-
-    const stats = [
-      { label: 'SEÇİLİ GÜN', value: formatTurkishDate(date), color: '#0F172A' },
-      { label: 'AKTİF RANDEVU SAYISI', value: `${appointments.length} Randevu`, color: '#2563EB' },
-      { label: 'SALON DURUMU', value: appointments.length > 0 ? 'Faal / Randevulu' : 'Randevu Yok', color: '#16A34A' },
-    ]
-
-    stats.forEach((stat, i) => {
-      const cardX = margin + i * (cardWidth + cardGap)
-      doc.roundedRect(cardX, y, cardWidth, cardHeight, 6).fillColor('#F8FAFC').fill()
-      doc.roundedRect(cardX, y, cardWidth, cardHeight, 6).strokeColor('#E2E8F0').lineWidth(1).stroke()
-
-      doc.font('Bold').fontSize(7.5).fillColor('#64748B').text(stat.label, cardX + 12, y + 10)
-      doc.font('Bold').fontSize(11.5).fillColor(stat.color).text(stat.value, cardX + 12, y + 26, {
-        width: cardWidth - 24,
-        ellipsis: true,
-      })
-    })
-
-    // --- Table Section ---
-    y += cardHeight + 20
-
-    const drawTableHeader = (headerY) => {
-      doc.font('Bold').fontSize(11).fillColor('#0F172A').text('Randevu Listesi', margin, headerY)
-      doc.font('Regular').fontSize(8.5).fillColor('#64748B').text(`${appointments.length} kayıt listelendi`, margin + 100, headerY + 2)
-
-      const cols = [
-        { title: '#', width: 28, align: 'center' },
-        { title: 'SAAT', width: 56, align: 'center' },
-        { title: 'MÜŞTERİ ADI', width: 140, align: 'left' },
-        { title: 'TELEFON', width: 105, align: 'left' },
-        { title: 'HİZMET / ÜCRET', width: 110, align: 'left' },
-        { title: 'NOT', width: 84, align: 'left' },
-      ]
-
-      const tableHeaderHeight = 26
-      const tableY = headerY + 18
-      doc.rect(margin, tableY, contentWidth, tableHeaderHeight).fillColor('#1E293B').fill()
-
-      let curX = margin
-      cols.forEach((col) => {
-        doc.font('Bold').fontSize(8).fillColor('#FFFFFF').text(col.title, curX + 6, tableY + 8, {
-          width: col.width - 12,
-          align: col.align,
-        })
-        curX += col.width
-      })
-
-      return tableY + tableHeaderHeight
-    }
-
-    const cols = [
-      { title: '#', width: 28, align: 'center' },
-      { title: 'SAAT', width: 56, align: 'center' },
-      { title: 'MÜŞTERİ ADI', width: 140, align: 'left' },
-      { title: 'TELEFON', width: 105, align: 'left' },
-      { title: 'HİZMET / ÜCRET', width: 110, align: 'left' },
-      { title: 'NOT', width: 84, align: 'left' },
-    ]
-
-    y = drawTableHeader(y)
-
-    if (appointments.length === 0) {
-      doc.rect(margin, y, contentWidth, 60).fillColor('#F8FAFC').fill()
-      doc.rect(margin, y, contentWidth, 60).strokeColor('#E2E8F0').lineWidth(1).stroke()
-      doc.font('Regular').fontSize(10).fillColor('#64748B').text('Bu tarih için kayıtlı randevu bulunmamaktadır.', margin, y + 24, {
-        align: 'center',
-        width: contentWidth,
-      })
-      y += 60
-    } else {
-      appointments.forEach((item, idx) => {
-        const rowHeight = 32
-        if (y + rowHeight > 760) {
-          doc.addPage()
-          y = drawTableHeader(40)
-        }
-
-        const isEven = idx % 2 === 0
-        const rowBg = isEven ? '#FFFFFF' : '#F8FAFC'
-
-        doc.rect(margin, y, contentWidth, rowHeight).fillColor(rowBg).fill()
-        doc.moveTo(margin, y + rowHeight).lineTo(pageWidth - margin, y + rowHeight).strokeColor('#E2E8F0').lineWidth(0.6).stroke()
-
-        let curX = margin
-
-        // Col 0: Index
-        doc.font('Regular').fontSize(8.5).fillColor('#64748B').text(String(idx + 1), curX + 6, y + 10, {
-          width: cols[0].width - 12,
-          align: cols[0].align,
-        })
-        curX += cols[0].width
-
-        // Col 1: Time badge
-        doc.roundedRect(curX + 6, y + 6, cols[1].width - 12, 19, 4).fillColor('#EFF6FF').fill()
-        doc.font('Bold').fontSize(9).fillColor('#1D4ED8').text(item.time, curX + 6, y + 10, {
-          width: cols[1].width - 12,
-          align: 'center',
-        })
-        curX += cols[1].width
-
-        // Col 2: Customer Name
-        doc.font('Bold').fontSize(9).fillColor('#0F172A').text(item.customerName, curX + 6, y + 10, {
-          width: cols[2].width - 12,
-          align: cols[2].align,
-          ellipsis: true,
-        })
-        curX += cols[2].width
-
-        // Col 3: Customer Phone
-        doc.font('Regular').fontSize(8.5).fillColor('#334155').text(item.customerPhone, curX + 6, y + 10, {
-          width: cols[3].width - 12,
-          align: cols[3].align,
-        })
-        curX += cols[3].width
-
-        // Col 4: Service + Price
-        const serviceText = item.servicePrice ? `${item.serviceName} (${item.servicePrice})` : item.serviceName
-        doc.font('Regular').fontSize(8.5).fillColor('#0F172A').text(serviceText, curX + 6, y + 10, {
-          width: cols[4].width - 12,
-          align: cols[4].align,
-          ellipsis: true,
-        })
-        curX += cols[4].width
-
-        // Col 5: Note
-        doc.font('Regular').fontSize(8).fillColor('#64748B').text(item.customerNote || '-', curX + 6, y + 10, {
-          width: cols[5].width - 12,
-          align: cols[5].align,
-          ellipsis: true,
-        })
-
-        y += rowHeight
-      })
-    }
-
-    // --- Footer for all pages ---
-    const range = doc.bufferedPageRange()
-    for (let i = range.start; i < range.start + range.count; i++) {
-      doc.switchToPage(i)
-      const footerY = 785
-      doc.moveTo(margin, footerY).lineTo(pageWidth - margin, footerY).strokeColor('#E2E8F0').lineWidth(0.8).stroke()
-      doc.font('Regular').fontSize(7.5).fillColor('#94A3B8').text(
-        'Muhammed Barber • Çankırı Merkez • Randevu Sistemi Yönetici Raporu',
-        margin,
-        footerY + 8,
-        { width: 350, lineBreak: false }
-      )
-      doc.font('Regular').fontSize(7.5).fillColor('#94A3B8').text(
-        `Sayfa ${i + 1} / ${range.count}`,
-        pageWidth - margin - 80,
-        footerY + 8,
-        { width: 80, align: 'right', lineBreak: false }
-      )
-    }
-
-    doc.end()
-  })
-}
-
 function isDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
 
 function isSunday(date) {
-  if (!isDate(date)) {
-    return false
-  }
-
+  if (!isDate(date)) return false
   const [year, month, day] = date.split('-').map(Number)
   return new Date(year, month - 1, day).getDay() === 0
 }
@@ -454,6 +225,8 @@ async function handleRequest(request, response) {
       return
     }
 
+    // Also clean up on lookup after an idle/suspended host resumes.
+    await cleanUpAppointments()
     sendJson(response, 200, {
       numberId,
       appointments: await getAppointmentsByNumberId(numberId),
@@ -764,4 +537,9 @@ const server = http.createServer((request, response) => {
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`Backend running on http://0.0.0.0:${port}`)
+  void cleanUpAppointments()
 })
+
+const appointmentCleanupTimer = setInterval(() => { void cleanUpAppointments() }, 60_000)
+appointmentCleanupTimer.unref()
+server.on('close', () => clearInterval(appointmentCleanupTimer))

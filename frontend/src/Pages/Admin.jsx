@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   FaArrowRightFromBracket,
+  FaArrowLeft,
+  FaArrowRight,
+  FaArrowUpRightFromSquare,
   FaBan,
-  FaBars,
   FaCalendarDays,
-  FaCalendarCheck,
   FaCheck,
   FaCircleCheck,
-  FaChartSimple,
   FaCircleExclamation,
   FaCircleInfo,
   FaClock,
@@ -17,6 +17,7 @@ import {
   FaFilePdf,
   FaFloppyDisk,
   FaLock,
+  FaMagnifyingGlass,
   FaPhone,
   FaPlus,
   FaRotateRight,
@@ -27,7 +28,12 @@ import {
   FaXmark,
 } from 'react-icons/fa6'
 import { formatLocalDate } from '../utils/date'
+import { ADMIN_SESSION_DAYS, getStoredAdminToken, isAdminSessionExpired } from '../utils/admin-session'
+import AdminAppointmentList from '../components/AdminAppointmentList'
+import AppointmentActions from '../components/AppointmentActions'
+import AdminNotice from '../components/AdminNotice'
 import './Admin.css'
+import './AdminStudio.css'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || ''
 
@@ -40,32 +46,32 @@ const sections = {
   '/admin/gun-kapat': {
     title: 'Gün Kapat',
     eyebrow: 'Takvim Yönetimi',
-    description: 'Çalışma olmayacak tarihleri kapat ve kapalı günleri listeden tekrar aç.',
+    description: 'Randevu alınmayacak tarihleri belirle.',
   },
   '/admin/saat-kapat': {
     title: 'Saat Kapat',
     eyebrow: 'Saat Yönetimi',
-    description: 'Belirli bir günde belirli saatleri randevuya kapat ve tekrar aç.',
+    description: 'Seçili günün kapalı saatlerini düzenle.',
   },
   '/admin/numara-engelle': {
     title: 'Numara Engelle',
     eyebrow: 'Müşteri Kontrolü',
-    description: 'Randevuya gelmeyen veya alınmayacak telefon numaralarını yönet.',
+    description: 'Engellenen telefon numaralarını yönet.',
   },
   '/admin/fiyatlar': {
     title: 'Fiyatlar',
     eyebrow: 'Hizmet Yönetimi',
-    description: 'Mevcut işlemlerin fiyatlarını ve sürelerini güncelle.',
+    description: 'Hizmet fiyatlarını ve sürelerini güncelle.',
   },
   '/admin/islem-ekle': {
     title: 'İşlem Ekle',
     eyebrow: 'Yeni Hizmet',
-    description: 'Randevu sayfasında görünecek yeni bir işlem oluştur.',
+    description: 'Hizmet listesine yeni işlem ekle.',
   },
   '/admin/islem-sil': {
     title: 'İşlem Sil',
     eyebrow: 'Hizmet Temizliği',
-    description: 'Artık alınmayacak işlemleri randevu ve fiyat listelerinden kaldır.',
+    description: 'Listeden kaldırılacak hizmeti seç.',
   },
 }
 
@@ -77,14 +83,6 @@ const navItems = [
   { to: '/admin/fiyatlar', label: 'Fiyatlar', icon: FaTags },
   { to: '/admin/islem-ekle', label: 'İşlem Ekle', icon: FaPlus },
   { to: '/admin/islem-sil', label: 'İşlem Sil', icon: FaTrash },
-]
-
-const statItems = [
-  { label: 'Seçili Gün', key: 'date', icon: FaCalendarCheck, variant: 'stat-blue' },
-  { label: 'Randevu', key: 'appointments', icon: FaChartSimple, variant: 'stat-indigo' },
-  { label: 'Kapalı Gün', key: 'closedDays', icon: FaBan, variant: 'stat-amber' },
-  { label: 'Kapalı Saat', key: 'blockedSlots', icon: FaClock, variant: 'stat-orange' },
-  { label: 'Engelli Numara', key: 'blockedPhones', icon: FaPhone, variant: 'stat-rose' },
 ]
 
 const timeSlots = [
@@ -116,28 +114,6 @@ const skeletonRows = [0, 1, 2, 3]
 const serviceSkeletonRows = [0, 1, 2, 3, 4]
 const chipSkeletonRows = [0, 1, 2]
 
-const SESSION_DURATION_MS = 60 * 60 * 1000 // 1 saat
-
-function getStoredAdminToken() {
-  const token = localStorage.getItem('adminToken')
-  if (!token) return ''
-
-  const loginTime = localStorage.getItem('adminLoginTime')
-  if (!loginTime) {
-    localStorage.setItem('adminLoginTime', String(Date.now()))
-    return token
-  }
-
-  const elapsed = Date.now() - Number(loginTime)
-  if (elapsed >= SESSION_DURATION_MS) {
-    localStorage.removeItem('adminToken')
-    localStorage.removeItem('adminLoginTime')
-    return ''
-  }
-
-  return token
-}
-
 function Admin() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -163,10 +139,71 @@ function Admin() {
   const [newService, setNewService] = useState({ name: '', price: '', time: '', detail: '' })
   const [status, setStatus] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isMobileNavigation, setIsMobileNavigation] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches,
+  )
+  const menuButtonRef = useRef(null)
+  const sidebarRef = useRef(null)
+  const closeMenuRef = useRef(null)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 900px)')
+    const onChange = () => {
+      setIsMobileNavigation(media.matches)
+      if (!media.matches) setIsSidebarOpen(false)
+    }
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    if (!token || !isSidebarOpen || !isMobileNavigation) return undefined
+    const previousOverflow = document.body.style.overflow
+    const menuTrigger = menuButtonRef.current
+    document.body.style.overflow = 'hidden'
+    closeMenuRef.current?.focus()
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setIsSidebarOpen(false)
+      if (event.key !== 'Tab') return
+      const controls = [...sidebarRef.current.querySelectorAll('a[href], button:not(:disabled)')]
+        .filter((element) => element.getClientRects().length)
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      menuTrigger?.focus({ preventScroll: true })
+    }
+  }, [token, isSidebarOpen, isMobileNavigation])
   const [isDashboardLoading, setIsDashboardLoading] = useState(false)
   const [confirmModal, setConfirmModal] = useState(null)
   const [isConfirmLoading, setIsConfirmLoading] = useState(false)
   const [toast, setToast] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredAppointments = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase('tr-TR')
+    return dashboard.appointments.filter((appointment) =>
+      [appointment.customerName, appointment.customerPhone, appointment.serviceName, appointment.time]
+        .some((value) => String(value || '').toLocaleLowerCase('tr-TR').includes(query)),
+    )
+  }, [dashboard.appointments, searchQuery])
+  const selectedDayLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString('tr-TR', {
+    day: 'numeric', month: 'long', weekday: 'long',
+  })
+  const shiftSelectedDate = (offset) => {
+    const date = new Date(`${selectedDate}T12:00:00`)
+    date.setDate(date.getDate() + offset)
+    setSelectedDate(formatLocalDate(date))
+    setSearchQuery('')
+  }
 
   const showToast = useCallback((type, message) => {
     setToast({ type, message })
@@ -181,6 +218,12 @@ function Admin() {
   }, [toast])
 
   useEffect(() => {
+    if (!token || !status || status.endsWith('...')) return undefined
+    const timer = window.setTimeout(() => setStatus(''), 3800)
+    return () => window.clearTimeout(timer)
+  }, [token, status])
+
+  useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape' && confirmModal && !isConfirmLoading) {
         setConfirmModal(null)
@@ -193,19 +236,21 @@ function Admin() {
   const isAuthenticated = Boolean(token)
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token])
   const isStatusLoading = status.endsWith('...')
+  const notification = isStatusLoading ? { type: 'loading', message: status } :
+    toast || (status ? { type: 'info', message: status } : null)
 
-  // 1 saatlik oturum kontrolu
+  // Keep the login screen and active-session expiry consistent.
   useEffect(() => {
     if (!isAuthenticated) return
 
     const checkSession = () => {
       const loginTime = localStorage.getItem('adminLoginTime')
-      if (!loginTime || Date.now() - Number(loginTime) >= SESSION_DURATION_MS) {
+      if (isAdminSessionExpired(loginTime)) {
         localStorage.removeItem('adminToken')
         localStorage.removeItem('adminLoginTime')
         setToken('')
         setPassword('')
-        setStatus('Oturum süreniz doldu (1 saat). Lütfen tekrar giriş yapın.')
+        setStatus('Oturum süreniz doldu. Lütfen tekrar giriş yapın.')
       }
     }
 
@@ -308,6 +353,7 @@ function Admin() {
   }
 
   const logout = () => {
+    setIsSidebarOpen(false)
     localStorage.removeItem('adminToken')
     localStorage.removeItem('adminLoginTime')
     setToken('')
@@ -625,8 +671,10 @@ function Admin() {
       link.click()
       URL.revokeObjectURL(url)
       setStatus('PDF indirildi.')
+      showToast('success', 'PDF indirildi.')
     } catch (error) {
       setStatus(error.message)
+      showToast('error', error.message || 'PDF indirilemedi.')
     }
   }
 
@@ -726,15 +774,20 @@ function Admin() {
     const isSessionExpired = status.includes('Oturum süreniz doldu')
 
     return (
-      <main className="admin-login-page">
+      <main className="admin-login-page admin-studio-login">
+        <header className="admin-signin-topbar">
+          <Link to="/" className="admin-signin-brand"><img src="/logo.png" alt="" /><span>Muhammed Barber</span></Link>
+          <Link to="/" className="admin-signin-back">Siteye dön <FaArrowUpRightFromSquare aria-hidden="true" /></Link>
+        </header>
+        <div className="admin-login-form-area">
         <form className="admin-login-card" onSubmit={login}>
           <div className="admin-login-header">
             <div className="admin-login-logo-wrap">
               <img className="admin-login-logo" src="/logo.png" alt="Muhammed Barber logo" />
             </div>
             <span className="admin-login-badge">Yönetici Girişi</span>
-            <h1>Muhammed Barber</h1>
-            <p>Admin paneline erişmek için şifrenizi giriniz.</p>
+            <h1>Yönetici girişi</h1>
+            <p>Panele erişmek için şifreni gir.</p>
           </div>
 
           <div className="admin-login-field">
@@ -752,6 +805,7 @@ function Admin() {
                 }}
                 placeholder="Yönetici şifreniz"
                 autoFocus
+                autoComplete="current-password"
                 required
               />
               <button
@@ -759,7 +813,6 @@ function Admin() {
                 className="admin-login-eye-btn"
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                tabIndex={-1}
               >
                 {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
               </button>
@@ -767,8 +820,8 @@ function Admin() {
           </div>
 
           <button className="admin-login-submit" type="submit" disabled={isLoginLoading}>
-            <FaLock aria-hidden="true" />
             {isLoginLoading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            <FaArrowRight aria-hidden="true" />
           </button>
 
           {status && (
@@ -788,30 +841,33 @@ function Admin() {
           )}
 
           <div className="admin-login-footer">
-            <span>⏱️ Güvenlik gereği oturum süresi 1 saattir.</span>
+            <span><FaLock aria-hidden="true" /> Bu cihazda {ADMIN_SESSION_DAYS} gün açık kalır.</span>
           </div>
         </form>
+        </div>
       </main>
     )
   }
 
   return (
-    <main className={`admin-dashboard ${isSidebarOpen ? 'is-sidebar-open' : ''}`}>
-      <header className="admin-mobile-topbar">
+    <main className={`admin-dashboard admin-studio ${isSidebarOpen ? 'is-sidebar-open' : ''}`}>
+      <header className="admin-mobile-topbar" inert={isMobileNavigation && isSidebarOpen ? true : undefined}>
+        <Link to="/admin" className="admin-mobile-identity">
+          <img src="/logo.png" alt="" />
+          <span><small>Muhammed Barber</small><strong>{currentSection.title}</strong></span>
+        </Link>
         <button
           className="admin-mobile-menu-button"
+          ref={menuButtonRef}
           type="button"
           onClick={() => setIsSidebarOpen((current) => !current)}
-          aria-label={isSidebarOpen ? 'Menuyu kapat' : 'Menuyu ac'}
+          aria-label="Yönetim menüsünü aç"
           aria-expanded={isSidebarOpen}
+          aria-controls="admin-navigation"
         >
-          {isSidebarOpen ? <FaXmark aria-hidden="true" /> : <FaBars aria-hidden="true" />}
+          <span>Menü</span>
+          <span className="admin-menu-glyph" aria-hidden="true"><i /><i /></span>
         </button>
-
-        <div className="admin-mobile-brand">
-          <img className="admin-brand-logo" src="/logo.png" alt="Muhammed Barber logo" />
-          <strong>Muhammed Barber</strong>
-        </div>
       </header>
 
       <button
@@ -819,96 +875,82 @@ function Admin() {
         type="button"
         onClick={() => setIsSidebarOpen(false)}
         aria-label="Menuyu kapat"
+        tabIndex={-1}
+        aria-hidden="true"
       />
 
-      <aside className="admin-dashboard-sidebar">
+      <aside className="admin-dashboard-sidebar" id="admin-navigation" ref={sidebarRef}
+        role={isMobileNavigation && isSidebarOpen ? 'dialog' : undefined}
+        aria-modal={isMobileNavigation && isSidebarOpen ? true : undefined}
+        aria-label="Yönetim menüsü"
+        inert={isMobileNavigation && !isSidebarOpen ? true : undefined}>
+        <div className="admin-drawer-heading">
+          <div><span>Muhammed Barber</span><h2>Menü</h2></div>
+          <button type="button" ref={closeMenuRef} onClick={() => setIsSidebarOpen(false)} aria-label="Menüyü kapat"><FaXmark aria-hidden="true" /></button>
+        </div>
         <div className="admin-sidebar-brand">
           <img className="admin-brand-logo" src="/logo.png" alt="Muhammed Barber logo" />
           <div>
             <strong>Muhammed Barber</strong>
-            <span>Admin Dashboard</span>
+            <span>Yönetim alanı</span>
           </div>
         </div>
 
         <nav className="admin-sidebar-nav">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const Icon = item.icon
 
             return (
+              <div className="admin-nav-entry" key={item.to}>
+              {(index === 0 || index === 1 || index === 4) && <span className="admin-nav-caption">{index === 0 ? 'GENEL BAKIŞ' : index === 1 ? 'TAKVİM & MÜŞTERİLER' : 'HİZMETLER'}</span>}
               <Link
                 className={currentPath === item.to ? 'is-active' : ''}
                 to={item.to}
-                key={item.to}
+                aria-current={currentPath === item.to ? 'page' : undefined}
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <Icon aria-hidden="true" />
                 <span>{item.label}</span>
               </Link>
+              </div>
             )
           })}
         </nav>
 
+        <a className="admin-drawer-site-link" href="/" target="_blank" rel="noreferrer">Siteyi görüntüle <FaArrowUpRightFromSquare aria-hidden="true" /></a>
+        <div className="admin-sidebar-footer"><div className="admin-user-avatar">MB</div><div><strong>Salon yöneticisi</strong><span>Muhammed Barber</span></div></div>
         <button className="admin-logout-button" type="button" onClick={logout}>
           <FaArrowRightFromBracket aria-hidden="true" />
           Çıkış
         </button>
       </aside>
 
-      <section className="admin-dashboard-main">
+      <section className="admin-dashboard-main" inert={isMobileNavigation && isSidebarOpen ? true : undefined}>
+        <div className="admin-workspace-bar">
+          <span>Muhammed Barber</span>
+          <a href="/" target="_blank" rel="noreferrer">Siteyi görüntüle <FaArrowUpRightFromSquare aria-hidden="true" /></a>
+        </div>
         <header className="admin-topbar">
           <div>
-            <span>{currentSection.eyebrow}</span>
             <h1>{currentSection.title}</h1>
-            <p>{currentSection.description}</p>
+            <p>{currentPath === '/admin' ? selectedDayLabel : currentSection.description}</p>
           </div>
-          {(isDashboardLoading || isStatusLoading) && (
-            <div className="admin-status-skeleton admin-skeleton" aria-label="Yukleniyor" />
-          )}
-          {status && !isStatusLoading && !isDashboardLoading && (
-            <p className="admin-status">
-              <FaCircleInfo aria-hidden="true" />
-              {status}
-            </p>
-          )}
         </header>
 
-        <div className="admin-stat-grid">
-          {statItems.map((item) => {
-            const Icon = item.icon
-            const value =
-              item.key === 'date'
-                ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('tr-TR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })
-                : dashboard[item.key].length
-
-            return (
-              <div className={`admin-stat-card ${item.variant}`} key={item.key}>
-                <div className="admin-stat-icon">
-                  <Icon aria-hidden="true" />
-                </div>
-                <span>{item.label}</span>
-                {isDashboardLoading ? (
-                  <i className="admin-skeleton admin-stat-skeleton" aria-hidden="true" />
-                ) : (
-                  <strong>{value}</strong>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
         {currentPath === '/admin' && (
-          <section className="admin-content-card">
+          <section className="admin-content-card admin-appointments-card" aria-label="Randevu listesi">
             <div className="admin-card-toolbar">
+              <div className="admin-date-controls">
+              <button type="button" className="admin-date-arrow" aria-label="Önceki gün" onClick={() => shiftSelectedDate(-1)}><FaArrowLeft aria-hidden="true" /></button>
               <label className="admin-toolbar-date">
                 <span>Tarih Seç</span>
-                <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+                <input type="date" value={selectedDate} required onChange={(event) => { if (event.target.value) { setSelectedDate(event.target.value); setSearchQuery('') } }} />
               </label>
+              <button type="button" className="admin-date-arrow" aria-label="Sonraki gün" onClick={() => shiftSelectedDate(1)}><FaArrowRight aria-hidden="true" /></button>
+              <button type="button" className="admin-today-button" onClick={() => { setSelectedDate(formatLocalDate(new Date())); setSearchQuery('') }}>Bugün</button>
+              </div>
               <div className="admin-toolbar-actions">
-                <button type="button" className="admin-btn-refresh" onClick={loadDashboard}>
+                <button type="button" className="admin-btn-refresh" onClick={loadDashboard} disabled={isDashboardLoading}>
                   <FaRotateRight aria-hidden="true" />
                   Yenile
                 </button>
@@ -917,6 +959,10 @@ function Admin() {
                   PDF 
                 </button>
               </div>
+            </div>
+            <div className="admin-search-row">
+              <label className="admin-appointment-search"><FaMagnifyingGlass aria-hidden="true" /><input type="search" aria-label="Randevularda ara" placeholder="Müşteri, telefon veya hizmet ara…" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} /></label>
+              <span aria-live="polite">{isDashboardLoading ? 'Yükleniyor…' : `${filteredAppointments.length} kayıt`}</span>
             </div>
 
             {isDashboardLoading ? (
@@ -931,27 +977,31 @@ function Admin() {
                 ))}
               </div>
             ) : (
+              <>
+              <AdminAppointmentList appointments={filteredAppointments} selectedDate={selectedDate}
+                searchQuery={searchQuery} onClearSearch={() => setSearchQuery('')}
+                onBlock={blockAppointmentPhone} onDelete={deleteSelectedAppointment} />
               <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Saat</th>
-                    <th>Musteri</th>
+                    <th>Müşteri</th>
                     <th>Telefon</th>
                     <th>Hizmet</th>
                     <th>Not</th>
-                    <th>Aksiyon</th>
+                    <th>İşlemler</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dashboard.appointments.length === 0 && (
+                  {filteredAppointments.length === 0 && (
                     <tr className="admin-empty-row">
-                      <td colSpan="6" style={{padding:"10px"}} className="admin-empty-cell">
-                        Bu tarih icin randevu yok.
+                      <td colSpan="6" className="admin-empty-cell">
+                        <div className="admin-empty-state"><FaCalendarDays aria-hidden="true" /><strong>{searchQuery ? 'Eşleşen randevu bulunamadı.' : 'Bu gün için randevu yok.'}</strong><p>{searchQuery ? 'Farklı bir isim veya telefon numarası deneyebilirsin.' : 'Yeni randevular alındıkça burada listelenecek.'}</p>{searchQuery && <button type="button" onClick={() => setSearchQuery('')}>Aramayı temizle</button>}</div>
                       </td>
                     </tr>
                   )}
-                  {dashboard.appointments.map((appointment) => (
+                  {filteredAppointments.map((appointment) => (
                     <tr key={appointment.id}>
                       <td data-label="Saat" className="admin-time-cell">
                         {appointment.time}
@@ -968,31 +1018,14 @@ function Admin() {
                       <td data-label="Hizmet">{appointment.serviceName}</td>
                       <td data-label="Not">{appointment.customerNote || '-'}</td>
                       <td data-label="Aksiyon">
-                        <div className="admin-action-group">
-                          <button
-                            className="admin-danger-button"
-                            type="button"
-                            onClick={() => blockAppointmentPhone(appointment)}
-                          >
-                            <FaBan aria-hidden="true" />
-                            Engelle
-                          </button>
-                          <button
-                            className="admin-danger-button admin-delete-button"
-                            type="button"
-                            onClick={() => deleteSelectedAppointment(appointment)}
-                            aria-label="Randevuyu sil"
-                          >
-                            <FaTrashCan aria-hidden="true" />
-                            Sil
-                          </button>
-                        </div>
+                        <AppointmentActions appointment={appointment} onBlock={blockAppointmentPhone} onDelete={deleteSelectedAppointment} />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               </div>
+              </>
             )}
           </section>
         )}
@@ -1265,6 +1298,8 @@ function Admin() {
             </div>
           </section>
         )}
+
+
       </section>
 
       {confirmModal && (
@@ -1348,26 +1383,7 @@ function Admin() {
         </div>
       )}
 
-      {toast && (
-        <div className="admin-toast-container">
-          <div className={`admin-toast is-${toast.type}`} role="status">
-            {toast.type === 'success' ? (
-              <FaCircleCheck aria-hidden="true" />
-            ) : (
-              <FaCircleExclamation aria-hidden="true" />
-            )}
-            <span>{toast.message}</span>
-            <button
-              type="button"
-              className="admin-toast-close"
-              aria-label="Kapat"
-              onClick={() => setToast(null)}
-            >
-              <FaXmark aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      )}
+      {notification && <AdminNotice {...notification} onClose={() => { setToast(null); setStatus('') }} />}
     </main>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { FaChevronLeft, FaChevronRight, FaSpinner } from 'react-icons/fa6'
 import { formatLocalDate } from '../utils/date'
+import BookingNav from '../components/BookingNav'
 import { formatTurkishMobileInput, getTurkishMobileDigits, isValidTurkishMobileNumber } from '../utils/phone'
 
 const defaultServices = [
@@ -39,6 +40,13 @@ const timeSlots = [
 
 const serviceSkeletonItems = [0, 1, 2, 3, 4]
 const dateSkeletonItems = [0, 1, 2, 3, 4, 5, 6]
+const bookingSteps = [
+  { label: 'Hizmet', hint: 'Sana uygun bakımı seç. Süre ve ücretleri aşağıda görebilirsin.' },
+  { label: 'Tarih', hint: 'Sana uygun günü seç. Kapalı günler seçime açık değildir.' },
+  { label: 'Saat', hint: 'Günün müsait saatlerinden birini seç.' },
+  { label: 'Özet', hint: 'Devam etmeden önce hizmet, tarih ve saatini kontrol et.' },
+  { label: 'Bilgilerin', hint: 'Son bir adım: iletişim bilgilerini ekleyerek randevunu tamamla.' },
+]
 
 const pageReveal = {
   initial: { opacity: 0, y: 30 },
@@ -321,11 +329,13 @@ function Randevu() {
 
   return (
     <main className="appointment-page">
+      <BookingNav current="book" />
       <motion.section className="appointment-shell" {...pageReveal}>
         <span className="appointment-brand">Muhammed Barber</span>
-        <h1>Randevu Al</h1>
-        <p>Hizmetini sec, tarihini ve saatini belirle. Koltugun hazir olsun.</p>
+        <h1>Stilin için yer ayır.</h1>
+        <p>Hizmetini seç, sana uygun zamanı belirle. Gerisini bize bırak.</p>
 
+        {step > 1 && !isCompleted && (
         <button className="selected-service-bar" type="button" onClick={() => setStep(1)}>
           <div>
             <span>Seçimleriniz</span>
@@ -335,13 +345,19 @@ function Randevu() {
           </div>
           <FaChevronRight aria-hidden="true" />
         </button>
+        )}
 
         <div className="appointment-card">
-          <div className="appointment-lines" aria-hidden="true">
-            {[1, 2, 3, 4, 5].map((line) => (
-              <span className={line <= step ? 'is-active' : ''} key={line} />
+          <ol className="booking-steps" aria-label="Randevu adımları">
+            {bookingSteps.map((item, index) => (
+              <li className={index + 1 < step ? 'is-done' : index + 1 === step ? 'is-current' : ''}
+                aria-current={index + 1 === step ? 'step' : undefined} key={item.label}>
+                <span>{index + 1 < step ? '✓' : String(index + 1).padStart(2, '0')}</span>
+                <strong>{item.label}</strong>
+              </li>
             ))}
-          </div>
+          </ol>
+          {!isCompleted && <p className="booking-step-hint" aria-live="polite">{bookingSteps[step - 1].hint}</p>}
 
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -369,6 +385,7 @@ function Randevu() {
                         <button
                           className={`appointment-service ${selectedService.name === service.name ? 'is-selected' : ''}`}
                           type="button"
+                          aria-pressed={selectedService.name === service.name}
                           key={service.name}
                           onClick={() => {
                             setSelectedService(service)
@@ -408,6 +425,7 @@ function Randevu() {
                             date.isClosed ? 'is-closed' : ''
                           }`}
                           type="button"
+                          aria-pressed={selectedDate === date.value}
                           disabled={date.isClosed}
                           key={date.value}
                           onClick={() => {
@@ -446,6 +464,7 @@ function Randevu() {
                               isUnavailable ? 'is-booked' : ''
                             }`}
                             type="button"
+                            aria-pressed={selectedTime === time}
                             disabled={isUnavailable}
                             key={time}
                             onClick={() => setSelectedTime(time)}
@@ -507,6 +526,7 @@ function Randevu() {
                     <span>Ad Soyad</span>
                     <input
                       type="text"
+                      autoComplete="name"
                       value={customerName}
                       onChange={(event) => setCustomerName(event.target.value)}
                       placeholder="Adinizi ve soyadinizi yazin"
@@ -514,11 +534,12 @@ function Randevu() {
                     />
                   </label>
                   <label>
-                    <span>Telefon Numarasi / Numara ID</span>
+                    <span>Telefon numaran</span>
                     <div className="phone-input">
                       <button type="button">TR +90</button>
                       <input
                         type="tel"
+                        autoComplete="tel-national"
                         value={customerPhone}
                         onChange={(event) => setCustomerPhone(formatTurkishMobileInput(event.target.value))}
                         placeholder="5xx xxx xx xx"
@@ -580,11 +601,12 @@ function Randevu() {
                     {formatTurkishMobileInput(createdAppointment?.numberId || createdAppointment?.customerPhone || customerPhone)}
                   </strong>
                 </div>
+                <a className="booking-complete-link" href="/randevu-sorgula">Randevumu görüntüle <FaChevronRight aria-hidden="true" /></a>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {appointmentError && <p className="appointment-error">{appointmentError}</p>}
+          {appointmentError && <p className="appointment-error" role="alert">{appointmentError}</p>}
 
           {!isCompleted && (
             <div className="appointment-bottom">

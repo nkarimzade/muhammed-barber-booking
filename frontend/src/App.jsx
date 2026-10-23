@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import './theme.css'
+import './design-revision.css'
+import './booking-revision.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import useTheme from './useTheme'

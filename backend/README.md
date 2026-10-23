@@ -4,6 +4,11 @@ Node.js API for services, appointment availability, admin controls, and booking 
 
 Data is stored in Firebase Firestore.
 
+Appointment lookup returns only bookings whose start time is still in the future,
+using `Europe/Istanbul` time. Past appointments are permanently deleted at server
+startup, every minute while the server is running, and before a phone lookup.
+If the hosting service suspends the process, cleanup resumes when it wakes up.
+
 ## Run
 
 ```bash

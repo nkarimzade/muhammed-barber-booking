@@ -1,6 +1,7 @@
 import admin from 'firebase-admin'
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
+import { getAppointmentCutoff, isUpcomingAppointment, purgePastAppointments } from './appointment-lifecycle.js'
 
 const defaultServices = [
   {
@@ -226,28 +227,14 @@ export async function getAppointmentsByNumberId(numberId) {
     appointmentsById.set(appointment.id, appointment)
   })
 
-  return [...appointmentsById.values()].sort(
+  const cutoff = getAppointmentCutoff()
+  return [...appointmentsById.values()].filter((appointment) => isUpcomingAppointment(appointment, cutoff)).sort(
     (a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''),
   )
 }
 
-export async function deletePastAppointments(todayDate) {
-  let deletedCount = 0
-  let snapshot = await appointmentsCollection.where('date', '<', todayDate).limit(450).get()
-
-  while (!snapshot.empty) {
-    const batch = firestore.batch()
-
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref)
-    })
-
-    await batch.commit()
-    deletedCount += snapshot.size
-    snapshot = await appointmentsCollection.where('date', '<', todayDate).limit(450).get()
-  }
-
-  return deletedCount
+export async function deletePastAppointments(now = new Date()) {
+  return purgePastAppointments(appointmentsCollection, () => firestore.batch(), now)
 }
 
 export async function isTimeBooked(date, time) {

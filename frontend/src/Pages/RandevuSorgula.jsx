@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { FaCalendarDays, FaClock, FaMagnifyingGlass, FaPhone, FaScissors, FaXmark } from 'react-icons/fa6'
+import { FaCalendarDays, FaClock, FaMagnifyingGlass, FaPhone, FaScissors, FaTag, FaXmark } from 'react-icons/fa6'
 import { formatTurkishMobileInput, getTurkishMobileDigits, isValidTurkishMobileNumber } from '../utils/phone'
+import BookingNav from '../components/BookingNav'
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || ''
 const lookupSkeletonItems = ['first', 'second', 'third']
@@ -22,7 +23,8 @@ function formatAppointmentDate(value) {
 function RandevuSorgula() {
   const [numberId, setNumberId] = useState('')
   const [lookupNumberId, setLookupNumberId] = useState('')
-  const [appointments, setAppointments] = useState([])
+  const [allAppointments, setAppointments] = useState([])
+  const [now, setNow] = useState(Date.now)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -32,6 +34,20 @@ function RandevuSorgula() {
   const normalizedNumberId = useMemo(() => getTurkishMobileDigits(numberId), [numberId])
   const isNumberIdValid = isValidTurkishMobileNumber(numberId)
   const canSearch = isNumberIdValid && !isLoading
+  const appointments = useMemo(() => allAppointments.filter((appointment) => {
+    const startsAt = Date.parse(`${appointment.date}T${appointment.time}:00+03:00`)
+    return Number.isFinite(startsAt) && startsAt > now
+  }), [allAppointments, now])
+
+  useEffect(() => {
+    const refreshClock = () => setNow(Date.now())
+    const timer = window.setInterval(refreshClock, 30_000)
+    window.addEventListener('focus', refreshClock)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refreshClock)
+    }
+  }, [])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -56,6 +72,7 @@ function RandevuSorgula() {
         throw new Error(data.message || 'Randevu sorgulanamadi.')
       }
 
+      setNow(Date.now())
       setAppointments(data.appointments || [])
       setLookupNumberId(formatTurkishMobileInput(data.numberId || normalizedNumberId))
     } catch (requestError) {
@@ -120,21 +137,25 @@ function RandevuSorgula() {
 
   return (
     <main className="lookup-page">
+      <BookingNav current="lookup" />
       <motion.section
         className="lookup-shell"
         initial={{ opacity: 0, y: 28 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
+        <div className="lookup-entry">
         <div className="lookup-heading">
-          <span>Randevu Sorgula</span>
-          <h1>Numaranla Randevunu Bul</h1>
-          <p>Randevu alirken girdigin telefon numarasi ayni zamanda Numara ID olarak kaydedilir.</p>
+          <span>Muhammed Barber</span>
+          <h1>Randevun burada.</h1>
+          <p>Telefon numaranla yaklaşan randevularını görüntüle. Tarih, saat ve hizmet bilgilerini kontrol et; gerekirse randevunu iptal et.</p>
+          <a className="lookup-new-booking" href="/randevu">Henüz randevun yok mu? <strong>Yerini ayır →</strong></a>
         </div>
 
         <form className="lookup-form" onSubmit={handleSubmit}>
+          <div className="lookup-form-heading"><FaCalendarDays aria-hidden="true" /><h2>Randevumu bul</h2></div>
           <label>
-            <span>Telefon / Numara ID</span>
+            <span>Telefon numaran</span>
             <div className="lookup-input">
               <FaPhone aria-hidden="true" />
               <input
@@ -147,20 +168,23 @@ function RandevuSorgula() {
                 pattern="5[0-9]{2} [0-9]{3} [0-9]{2} [0-9]{2}"
                 title="5xx xxx xx xx formatinda girin"
                 aria-invalid={numberId ? !isNumberIdValid : undefined}
+                aria-describedby="lookup-phone-hint"
+                required
               />
             </div>
-            <small className={`phone-format-hint ${numberId && !isNumberIdValid ? 'is-invalid' : ''}`}>
-              5xx xxx xx xx formatinda olmalidir.
+            <small id="lookup-phone-hint" className={`phone-format-hint ${numberId && !isNumberIdValid ? 'is-invalid' : ''}`}>
+              Başında 0 olmadan, 10 haneli numaranı yaz.
             </small>
           </label>
           <button type="submit" disabled={!canSearch}>
             <FaMagnifyingGlass aria-hidden="true" />
-            Sorgula
+            {isLoading ? 'Randevun aranıyor…' : 'Randevumu Bul'}
           </button>
         </form>
+        </div>
 
-        {error && <p className="lookup-error">{error}</p>}
-        {successMessage && <p className="lookup-success">{successMessage}</p>}
+        {error && <p className="lookup-error" role="alert">{error}</p>}
+        {successMessage && <p className="lookup-success" role="status">{successMessage}</p>}
 
         <section className="lookup-results" aria-live="polite">
           {isLoading &&
@@ -175,8 +199,8 @@ function RandevuSorgula() {
           {!isLoading && hasSearched && appointments.length === 0 && !error && (
             <div className="lookup-empty">
               <FaMagnifyingGlass aria-hidden="true" />
-              <strong>Randevu bulunamadi</strong>
-              <p>Bu Numara ID ile kayitli bir randevu gorunmuyor.</p>
+              <strong>Yaklaşan randevun yok</strong>
+              <p>Bu telefon numarasıyla gelecekte bir randevu görünmüyor. Numaranı kontrol edebilir veya yeni bir randevu alabilirsin.</p>
               <a href="/randevu">Yeni randevu al</a>
             </div>
           )}
@@ -184,7 +208,7 @@ function RandevuSorgula() {
           {!isLoading && appointments.length > 0 && (
             <>
               <div className="lookup-result-meta">
-                <span>Numara ID</span>
+                <span>{appointments.length} randevu bulundu</span>
                 <strong>{lookupNumberId}</strong>
               </div>
 
@@ -208,7 +232,7 @@ function RandevuSorgula() {
                       <span>{appointment.serviceTime}</span>
                     </div>
                     <div>
-                      <FaCalendarDays aria-hidden="true" />
+                      <FaTag aria-hidden="true" />
                       <span>{appointment.servicePrice}</span>
                     </div>
                   </div>

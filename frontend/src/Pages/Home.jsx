@@ -76,7 +76,6 @@ const reviews = [
     text: 'Koltuga oturunca isi bilen birine geldigin belli oluyor.',
   },
 ]
-const reviewRows = [reviews.slice(0, 6), reviews.slice(6)]
 const defaultServices = [
   { id: 'sac-kesimi', name: 'Saç kesimi', price: '350 TL', detail: 'Klasik, modern ve fade kesim' },
   { id: 'sakal-tirasi', name: 'Sakal tıraşı', price: '200 TL', detail: 'Hat belirleme ve sıcak havlu' },
@@ -296,11 +295,11 @@ function Home({ theme }) {
 
           <div className="hero-cta-card">
             <div>
-              <span>Siradaki kesim</span>
-              <strong>Senin stilin</strong>
+              <span>Yeni stilin için</span>
+              <strong>Yerini ayır.</strong>
             </div>
             <a className="primary-hero-action" href="/randevu" aria-label="Randevu al">
-              Randevu
+              Randevu Al
               <FaChevronRight aria-hidden="true" />
             </a>
           </div>
@@ -319,6 +318,65 @@ function Home({ theme }) {
             </div>
           </div>
         </motion.div>
+      </section>
+
+      <section className="selected-work" aria-labelledby="selected-work-title">
+        <div className="selected-work-heading">
+          <div>
+            <span className="section-kicker">Koltuktan çıkan stiller</span>
+            <h2 id="selected-work-title">Detaylar fark yaratır.</h2>
+          </div>
+          <a href="#galeri">Tüm galeri <FaChevronRight aria-hidden="true" /></a>
+        </div>
+        <div className="selected-work-grid">
+          {[
+            { src: '/galery/1.jpg', title: 'Doğal doku', detail: 'Klasik kesim, temiz geçişler', alt: 'Yandan görünen doğal dokulu saç kesimi' },
+            { src: '/galery/2.jfif', title: 'Net geçişler', detail: 'Özenle şekillenen bir stil', alt: 'Kısa saçta kademeli fade geçişi' },
+            { src: '/galery/3.jfif', title: 'Kişisel dokunuş', detail: 'Tarzını tamamlayan detaylar', alt: 'Ense bölgesinde çizgi tasarımlı saç kesimi' },
+          ].map((work) => (
+            <a className="selected-work-card" href="#galeri" key={work.src}>
+              <div className="selected-work-image">
+                <img src={work.src} alt={work.alt} loading="lazy" width="1920" height="2560" />
+              </div>
+              <div className="selected-work-caption">
+                <h3>{work.title}</h3>
+                <p>{work.detail}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="reviews-section" id="yorumlar">
+        <div className="reviews-heading">
+          <motion.span
+            className="section-kicker"
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.45 }}
+            transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Yorumlar
+          </motion.span>
+          <motion.h2
+            initial={{ opacity: 0, y: 34 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.45 }}
+            transition={{ duration: 1.25, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Koltuktan izlenimler.
+          </motion.h2>
+        </div>
+
+        <div className="selected-reviews">
+          {reviews.slice(0, 3).map((review) => (
+            <article className="review-card" key={review.name}>
+              <span className="review-quote" aria-hidden="true">“</span>
+              <p>{review.text}</p>
+              <strong>{review.name}</strong>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="about-section" id="next-section">
@@ -406,45 +464,6 @@ function Home({ theme }) {
             imageFit="cover"
             grayscale={1}
           />
-        </motion.div>
-      </section>
-
-      <section className="reviews-section" id="yorumlar">
-        <div className="reviews-heading">
-          <motion.span
-            className="section-kicker"
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.45 }}
-            transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
-          >
-            Yorumlar
-          </motion.span>
-          <motion.h2
-            initial={{ opacity: 0, y: 34 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.45 }}
-            transition={{ duration: 1.25, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            Koltugu birakmak istemeyenler
-          </motion.h2>
-        </div>
-
-        <motion.div className="reviews-marquee" {...revealProps} transition={{ ...revealProps.transition, delay: 0.45 }}>
-          {reviewRows.map((row, rowIndex) => (
-            <div className={`reviews-track ${rowIndex === 1 ? 'is-reverse' : ''}`} key={rowIndex}>
-              {[...row, ...row].map((review, index) => (
-                <article className="review-card" key={`${review.name}-${index}`}>
-                  <div className="review-card-top">
-                    <span>{String((index % row.length) + 1).padStart(2, '0')}</span>
-                    <i>MB</i>
-                  </div>
-                  <p>{review.text}</p>
-                  <strong>{review.name}</strong>
-                </article>
-              ))}
-            </div>
-          ))}
         </motion.div>
       </section>
 
