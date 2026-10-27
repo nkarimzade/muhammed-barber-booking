@@ -5,3 +5,9 @@ export function formatLocalDate(date) {
 
   return `${year}-${month}-${day}`
 }
+
+export function isPastAppointmentSlot(date, time, now = new Date()) {
+  if (!date || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time || '')) return false
+  const startsAt = Date.parse(`${date}T${time}:00+03:00`)
+  return Number.isFinite(startsAt) && startsAt <= now.getTime()
+}

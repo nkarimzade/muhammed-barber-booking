@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { FaChevronLeft, FaChevronRight, FaSpinner } from 'react-icons/fa6'
-import { formatLocalDate } from '../utils/date'
+import { formatLocalDate, isPastAppointmentSlot } from '../utils/date'
 import BookingNav from '../components/BookingNav'
 import { formatTurkishMobileInput, getTurkishMobileDigits, isValidTurkishMobileNumber } from '../utils/phone'
 
@@ -110,16 +110,7 @@ function Randevu() {
   }, [])
 
   const todayString = formatLocalDate(currentTime)
-  const isPastSlot = (time) => {
-    if (!selectedDate) return false
-    if (selectedDate < todayString) return true
-    if (selectedDate === todayString) {
-      const slotHour = parseInt(time.split(':')[0], 10)
-      const currentHour = currentTime.getHours()
-      return slotHour < currentHour
-    }
-    return false
-  }
+  const isPastSlot = (time) => isPastAppointmentSlot(selectedDate, time, currentTime)
 
   const dateOptions = useMemo(() => getDateOptions(currentTime), [todayString])
   const closedDayValues = useMemo(() => new Set(closedDays.map((day) => day.date)), [closedDays])
